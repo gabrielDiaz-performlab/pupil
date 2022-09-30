@@ -28,7 +28,6 @@ from methods import normalize
 from .calibrate_3d import (
     calibrate_binocular,
     calibrate_monocular,
-    calibrate_hmd
 )
 from .utils import (
     calculate_nearest_points_to_targets,
@@ -63,8 +62,7 @@ class Model3D(Model):
     def _predict_single(self, x):
         pass
 
-    # def __init__(self, *, intrinsics: T.Optional[T.Any], initial_depth=500):
-    def __init__(self, *, intrinsics: T.Optional[T.Any], initial_depth: float):
+    def __init__(self, *, intrinsics: T.Optional[T.Any], initial_depth=500):
         self.intrinsics = intrinsics
         self.initial_depth = initial_depth
         self._is_fitted = False
@@ -100,10 +98,6 @@ class Model3D_Monocular(Model3D):
     # optional access to binocular_model.last_gaze_distance
     binocular_model: "Model3D_Binocular" = None
 
-    def __init__(self, *, initial_eye_translation, **kwargs):
-        super().__init__(**kwargs)
-        self._initial_eye_translation = np.array(initial_eye_translation)
-
     @property
     def gaze_distance(self):
         if self.binocular_model is not None and self.binocular_model.is_fitted:
@@ -118,18 +112,9 @@ class Model3D_Monocular(Model3D):
         pupil_id = X[-1, _MONOCULAR_EYEID]  # last pupil eye id
         sphere_pos = X[-1, _MONOCULAR_SPHERE_CENTER]  # last pupil sphere center
 
-        # result = calibrate_monocular(
-        #     unprojected_ref_points, pupil_normals, pupil_id, self.initial_depth
-        # )
-
         result = calibrate_monocular(
-            unprojected_ref_points,
-            pupil_normals,
-            pupil_id,
-            self.initial_depth,
-            initial_translation = self._initial_eye_translation,
-            )
-
+            unprojected_ref_points, pupil_normals, pupil_id, self.initial_depth
+        )
         success, poses_in_world, gaze_targets_in_world = result
         if not success:
             raise FitDidNotConvergeError
@@ -202,12 +187,6 @@ class Model3D_Monocular(Model3D):
 
 
 class Model3D_Binocular(Model3D):
-
-    def __init__(self, *, initial_eye_translation0, initial_eye_translation1, **kwargs):
-        super().__init__(**kwargs)
-        self._initial_eye_translation0 = np.array(initial_eye_translation0)
-        self._initial_eye_translation1 = np.array(initial_eye_translation1)
-
     def _fit(self, X, Y):
         assert X.shape[1] == _BINOCULAR_FEATURE_COUNT, X
         unprojected_ref_points = Y
@@ -226,13 +205,7 @@ class Model3D_Binocular(Model3D):
         assert sphere_pos0.shape == (3,), sphere_pos0
 
         res = calibrate_binocular(
-            #unprojected_ref_points, pupil0_normals, pupil1_normals, self.initial_depth
-            unprojected_ref_points,
-            pupil0_normals,
-            pupil1_normals,
-            self.initial_depth,
-            initial_translation0=self._initial_eye_translation0,
-            initial_translation1=self._initial_eye_translation1,
+            unprojected_ref_points, pupil0_normals, pupil1_normals, self.initial_depth
         )
         success, poses_in_world, gaze_targets_in_world = res
         if not success:
@@ -354,38 +327,18 @@ class Model3D_Binocular(Model3D):
 class Gazer3D(GazerBase):
     label = "3D"
 
-    eye0_hardcoded_translation = 20, 15, -20
-    eye1_hardcoded_translation = -40, 15, -20
-    ref_depth_hardcoded = 500
-
     @classmethod
     def _gazer_description_text(cls) -> str:
         return "3D gaze mapping: default method; able to compensate for small movements of the headset (slippage); uses 3d eye model as input."
 
     def _init_left_model(self) -> Model:
-        #return Model3D_Monocular(intrinsics=self.g_pool.capture.intrinsics)
-        return Model3D_Monocular(
-            intrinsics=self.g_pool.capture.intrinsics,
-            initial_depth=self.ref_depth_hardcoded,
-            initial_eye_translation=self.eye1_hardcoded_translation,
-        )
+        return Model3D_Monocular(intrinsics=self.g_pool.capture.intrinsics)
 
     def _init_right_model(self) -> Model:
-        #return Model3D_Monocular(intrinsics=self.g_pool.capture.intrinsics)
-        return Model3D_Monocular(
-            intrinsics=self.g_pool.capture.intrinsics,
-            initial_depth=self.ref_depth_hardcoded,
-            initial_eye_translation=self.eye0_hardcoded_translation,
-        )
+        return Model3D_Monocular(intrinsics=self.g_pool.capture.intrinsics)
 
     def _init_binocular_model(self) -> Model:
-        #return Model3D_Binocular(intrinsics=self.g_pool.capture.intrinsics)
-        return Model3D_Binocular(
-            intrinsics=self.g_pool.capture.intrinsics,
-            initial_depth=self.ref_depth_hardcoded,
-            initial_eye_translation0=self.eye0_hardcoded_translation,
-            initial_eye_translation1=self.eye1_hardcoded_translation,
-        )
+        return Model3D_Binocular(intrinsics=self.g_pool.capture.intrinsics)
 
     def fit_on_calib_data(self, calib_data):
         super().fit_on_calib_data(calib_data)
@@ -406,29 +359,12 @@ class Gazer3D(GazerBase):
         assert pupil_features.shape == expected_shaped, pupil_features
         return pupil_features
 
-    # def _extract_reference_features(self, ref_data) -> np.ndarray:
-    #     ref_2d = np.array([ref["screen_pos"] for ref in ref_data])
-    #     assert ref_2d.shape == (len(ref_data), 2), ref_2d
-    #     ref_3d = self.g_pool.capture.intrinsics.unprojectPoints(ref_2d, normalize=True)
-    #     assert ref_3d.shape == (len(ref_data), 3), ref_3d
-    #     return ref_3d
-
-    def _extract_reference_features(self, ref_data, monocular=False) -> np.ndarray:
-        try:
-            if monocular or self.g_pool.realtime_ref is None:
-                ref_2d = np.array([ref["screen_pos"] for ref in ref_data])
-                assert ref_2d.shape == (len(ref_data), 2), ref_2d
-                ref_3d = self.g_pool.capture.intrinsics.unprojectPoints(ref_2d, normalize=True)
-                assert ref_3d.shape == (len(ref_data), 3), ref_3d
-                return ref_3d
-            else:
-                return np.array([ref["screen_pos"] for ref in ref_data])
-        except:
-            ref_2d = np.array([ref["screen_pos"] for ref in ref_data])
-            assert ref_2d.shape == (len(ref_data), 2), ref_2d
-            ref_3d = self.g_pool.capture.intrinsics.unprojectPoints(ref_2d, normalize=True)
-            assert ref_3d.shape == (len(ref_data), 3), ref_3d
-            return ref_3d
+    def _extract_reference_features(self, ref_data) -> np.ndarray:
+        ref_2d = np.array([ref["screen_pos"] for ref in ref_data])
+        assert ref_2d.shape == (len(ref_data), 2), ref_2d
+        ref_3d = self.g_pool.capture.intrinsics.unprojectPoints(ref_2d, normalize=True)
+        assert ref_3d.shape == (len(ref_data), 3), ref_3d
+        return ref_3d
 
     def predict(
         self, matched_pupil_data: T.Iterator[T.List["Pupil"]]

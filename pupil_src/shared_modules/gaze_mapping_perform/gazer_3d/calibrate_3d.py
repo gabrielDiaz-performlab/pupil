@@ -20,24 +20,6 @@ eye1_hardcoded_translation = np.array([-40, 15, -20])
 
 residual_threshold = 1e3
 
-hardcoded_unity_ref_points = np.array([[0,     0,    0.6],
-                                       [0,     0,    1.0],
-                                       [0,     0,    2.0],
-                                       [0.2,   0.0,  0.6],
-                                       [0.2,   0.0,  1.0],
-                                       [0.4,   0.0,  2.0],
-                                       [0.1,   0.2,  0.6],
-                                       [0.1,   0.2,  1.0],
-                                       [0.1,   0.4,  2.0],
-                                       [-0.1,  0.1,  0.6],
-                                       [-0.2,  0.1,  1.0],
-                                       [-0.3,  0.2,  2.0],
-                                       [-0.1, -0.1,  0.6],
-                                       [-0.2, -0.1,  1.0],
-                                       [-0.3, -0.2,  2.0],
-                                       [0.1,  -0.2,  0.6],
-                                       [0.1,  -0.2,  1.0],
-                                       [0.1,  -0.4,  2.0]])
 
 class SphericalCamera:
     def __init__(
@@ -50,18 +32,9 @@ class SphericalCamera:
         self.fix_translation = bool(fix_translation)
 
 
-# def calibrate_binocular(
-#     unprojected_ref_points, pupil0_normals, pupil1_normals, initial_depth
-# ):
 def calibrate_binocular(
-
-        unprojected_ref_points,
-        pupil0_normals,
-        pupil1_normals,
-        initial_depth,
-        initial_translation0,
-        initial_translation1
-    ):
+    unprojected_ref_points, pupil0_normals, pupil1_normals, initial_depth
+):
     """Determine the poses of the eyes and 3d gaze points by solving a specific
     least-squares minimization
 
@@ -122,12 +95,7 @@ def calibrate_binocular(
     return success, poses_in_world, gaze_targets_in_world
 
 
-# def calibrate_monocular(unprojected_ref_points, pupil_normals, pupil_id, initial_depth):
-
-def calibrate_monocular(
-            unprojected_ref_points, pupil_normals, pupil_id, initial_depth, initial_translation
-    ):
-
+def calibrate_monocular(unprojected_ref_points, pupil_normals, pupil_id, initial_depth):
     """Determine the poses of the eyes and 3d gaze points by solving a specific
     least-squares minimization
 
