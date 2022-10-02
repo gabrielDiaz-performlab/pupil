@@ -291,8 +291,9 @@ class GazerBase(abc.ABC, Plugin):
         #        binocular_matches = self.match_pupil_to_ref(pupil_data, ref_data)
         # except:
         #    binocular_matches = self.match_pupil_to_ref(pupil_data, ref_data)
-        binocular_matches = self.match_pupil_to_ref(pupil_data, ref_data)
+        # binocular_matches = self.match_pupil_to_ref(pupil_data, ref_data)
 
+        matches = self.match_pupil_to_ref(pupil_data, ref_data)
         if matches.binocular[0]:
             self._fit_binocular_model(self.binocular_model, matches.binocular)
             self._fit_monocular_model(self.right_model, matches.right)
