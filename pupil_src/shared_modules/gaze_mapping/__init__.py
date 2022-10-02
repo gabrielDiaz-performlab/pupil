@@ -28,10 +28,10 @@ def user_selectable_gazer_classes() -> list:
 def user_selectable_gazer_classes_posthoc() -> list:
     gazers = registered_gazer_classes()
     gazers = filter(lambda g: g not in (GazerHMD3D,), gazers)
+    return list(gazers)
 
 def gazer_labels_by_class_names(gazers: list) -> dict:
     return {cls.__name__: cls.label for cls in gazers}
-
 
 def gazer_classes_by_class_name(gazers: list) -> dict:
     return {cls.__name__: cls for cls in gazers}
