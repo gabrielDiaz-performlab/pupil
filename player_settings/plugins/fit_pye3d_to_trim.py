@@ -191,7 +191,7 @@ class fit_pye3d_to_trim(Plugin):
             # self.eye1_pye3d.detector.update_and_detect(datum_2d, None)
 
             datum_3d = self.eye0_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
-            datum_3d['id'] = '0'
+            datum_3d['id'] = 0
             datum_3d['topic'] = "pupil.0.3d"
             datum_3d['method'] = self.eye0_pye3d.pupil_detection_method
             new_pupil_data.append([Serialized_Dict(datum_3d), datum_3d['timestamp'], datum_3d['topic']])
@@ -211,7 +211,7 @@ class fit_pye3d_to_trim(Plugin):
             # self.pupil_1_3d_data.append(fm.Serialized_Dict(python_dict=pupil3d_datum))
 
             datum_3d = self.eye1_pye3d.detect(pupil_frame,**{"previous_detection_results": [datum_2d], "threshold_swirski": 0.0})
-            datum_3d['id'] = '1'
+            datum_3d['id'] = 1
             datum_3d['topic'] = "pupil.1.3d"
             datum_3d['method'] = self.eye1_pye3d.pupil_detection_method
             new_pupil_data.append([Serialized_Dict(datum_3d), datum_3d['timestamp'], datum_3d['topic']])
