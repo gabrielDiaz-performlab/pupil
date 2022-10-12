@@ -12,6 +12,7 @@ import file_methods as fm
 
 import av
 import numpy as np
+import cv2
 
 CUSTOM_TOPIC = "custom_topic"
 
@@ -44,6 +45,8 @@ class load_3d_references(Plugin):
         self.pupil_0_3d_data = []
         self.pupil_1_3d_data = []
 
+        # Currently, this loads in the world camera intrinsics
+        # TODO: Create artificial gpool object here and load in eye camera intrinsics
         self.eye0_detector3d = Pye3DPlugin(g_pool=g_pool).pupil_detector
         self.eye1_detector3d = Pye3DPlugin(g_pool=g_pool).pupil_detector
 
@@ -110,9 +113,9 @@ class load_3d_references(Plugin):
             frame_gray = frame.reformat(frame.width, frame.height, 'gray')
 
             bgr = frame_bgr.to_nd_array()
-            gray = frame_gray.to_nd_array()
-            height, width = gray.shape
 
+            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+            height, width = gray.shape
             timestamp = datum_2D['timestamp']
 
             # for count, timestamp in enumerate(self.g_pool.timestamps):
