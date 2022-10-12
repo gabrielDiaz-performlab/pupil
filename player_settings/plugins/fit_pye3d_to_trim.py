@@ -36,7 +36,7 @@ class pye3d_custom(Pye3DPlugin):
         super(pye3d_custom,self).__init__(g_pool=g_pool)
 
 
-        self.pupil_detection_method = f"perform_pye3d {pye3d.__version__} post-hoc"
+        self.pupil_detection_method = f"perform_pye3d_{pye3d.__version__}_post-hoc"
         self.detector = Detector3D(camera=self.camera, long_term_mode=DetectorMode.blocking)
 
 
@@ -45,7 +45,7 @@ class fit_pye3d_to_trim(Plugin):
 
     # uniqueness = "by_class"
     icon_font = "pupil_icons"
-    icon_chr = chr(0xEC18)
+    icon_chr = chr(0xec19)
     label = "3D Reference Loader"
 
 
@@ -95,6 +95,7 @@ class fit_pye3d_to_trim(Plugin):
 
         self.pupil_0_2d_data = []
         self.pupil_1_2d_data = []
+        self.pupil_data_2d = []
 
         self.pupil_0_3d_data = []
         self.pupil_1_3d_data = []
@@ -107,14 +108,14 @@ class fit_pye3d_to_trim(Plugin):
         eye1_intrinsics = self.load_intrinsics(eye1_intrinsics_loc)
         self.eye1_pye3d = pye3d_custom(g_pool=self.create_fake_gpool(eye1_intrinsics,eye_id="1"))
 
-        # self._stop_other_pupil_detectors()
-        self._load_2D_pupil_datum()
-        self._remove_3D_pupil_data()
-        self._produce_3D_pupil_data()
 
         # initialize empty menu
         self.menu = None
         self.order = 0.9
+
+    def _recalc_pupil_positions(self):
+        self._fit_model_to_range()
+        self._produce_3D_pupil_data()
 
     def _stop_other_pupil_detectors(self):
 
@@ -135,35 +136,30 @@ class fit_pye3d_to_trim(Plugin):
 
         return start_time, end_time
 
-    def _load_2D_pupil_datum(self):
+    def _fit_model_to_range(self):
 
         pupil_data = self.g_pool.pupil_positions
 
-        for loaded_datum in pupil_data:
+        for datum_2d in pupil_data:
 
-            if loaded_datum["topic"]=='pupil.0.2d' and loaded_datum["timestamp"] >= self.start_time and loaded_datum["timestamp"] <= self.end_time and loaded_datum["confidence"] >= self.pupilDatum_conf_threshold:
-                self.pupil_0_2d_data.append(loaded_datum)
-                observation = self.eye0_pye3d.detector._extract_observation(loaded_datum)
-                self.eye0_pye3d.detector.update_models(observation)
+            if datum_2d["topic"]=='pupil.0.2d' and datum_2d["timestamp"] >= self.start_time and datum_2d["timestamp"] <= self.end_time and datum_2d["confidence"] >= self.pupilDatum_conf_threshold:
 
-            elif loaded_datum["topic"] == 'pupil.1.2d' and loaded_datum["timestamp"] >= self.start_time and loaded_datum[ "timestamp"] <= self.end_time and loaded_datum["confidence"] >= self.pupilDatum_conf_threshold:
-                self.pupil_1_2d_data.append(loaded_datum)
-                observation = self.eye1_pye3d.detector._extract_observation(loaded_datum)
-                self.eye1_pye3d.detector.update_models(observation)
+                self.pupil_0_2d_data.append(datum_2d)
+                self.eye0_pye3d.detector.update_and_detect(datum_2d, None)
+
+            elif datum_2d["topic"] == 'pupil.1.2d' and datum_2d["timestamp"] >= self.start_time and datum_2d["timestamp"] <= self.end_time  and datum_2d["confidence"] >= self.pupilDatum_conf_threshold:
+
+                self.pupil_1_2d_data.append(datum_2d)
+                self.eye1_pye3d.detector.update_and_detect(datum_2d, None)
 
         setattr(self.eye0_pye3d.detector, "is_long_term_model_frozen", True)
         setattr(self.eye1_pye3d.detector, "is_long_term_model_frozen", True)
 
-    def _remove_3D_pupil_data(self):
-
-        pupil_data = self.g_pool.pupil_positions
-        for loaded_datum in pupil_data:
-            print(loaded_datum["topic"])
-            a=1
-            # if "3d" in loaded_datum["topic"]
 
     def _produce_3D_pupil_data(self):
 
+        from player_methods import PupilDataBisector
+        from file_methods import PLData, Serialized_Dict
         import av
         import cv2
 
@@ -172,7 +168,16 @@ class fit_pye3d_to_trim(Plugin):
         bgr = frame.to_ndarray()
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 
+        # datum_3d['id'] = '1'
+        # datum_3d['topic'] = "pupil.1.3d"
+        # datum_3d['method'] = self.eye1_pye3d.pupil_detection_method
+        # new_pupil_data.append([Serialized_Dict(datum_3d), datum_3d['timestamp'], datum_3d['topic']])
+
+        new_pupil_data = []
+
         for datum_2d in self.pupil_0_2d_data:
+
+            new_pupil_data.append([datum_2d, datum_2d['timestamp'], datum_2d['topic']])
 
             pupil_frame = lambda: None
             setattr(pupil_frame, "gray", gray)
@@ -181,11 +186,20 @@ class fit_pye3d_to_trim(Plugin):
             setattr(pupil_frame, "height", height)
             setattr(pupil_frame, "timestamp", datum_2d['timestamp'])
 
-            pupil3d_datum = self.eye0_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
-            self.pupil_0_3d_data.append(fm.Serialized_Dict(python_dict=pupil3d_datum))
+            # pupil3d_datum = self.eye0_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
+            # self.pupil_0_3d_data.append(fm.Serialized_Dict(python_dict=pupil3d_datum))
+            # self.eye1_pye3d.detector.update_and_detect(datum_2d, None)
+
+            datum_3d = self.eye0_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
+            datum_3d['id'] = '0'
+            datum_3d['topic'] = "pupil.0.3d"
+            datum_3d['method'] = self.eye0_pye3d.pupil_detection_method
+            new_pupil_data.append([Serialized_Dict(datum_3d), datum_3d['timestamp'], datum_3d['topic']])
 
         for datum_2d in self.pupil_1_2d_data:
 
+            new_pupil_data.append([datum_2d, datum_2d['timestamp'], datum_2d['topic']])
+
             pupil_frame = lambda: None
             setattr(pupil_frame, "gray", gray)
             setattr(pupil_frame, "bgr", bgr)
@@ -193,23 +207,36 @@ class fit_pye3d_to_trim(Plugin):
             setattr(pupil_frame, "height", height)
             setattr(pupil_frame, "timestamp", datum_2d['timestamp'])
 
-            pupil3d_datum = self.eye1_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
-            self.pupil_1_3d_data.append(fm.Serialized_Dict(python_dict=pupil3d_datum))
+            # pupil3d_datum = self.eye1_pye3d.detect(pupil_frame, **{"previous_detection_results": [datum_2d],"threshold_swirski": 0.0})
+            # self.pupil_1_3d_data.append(fm.Serialized_Dict(python_dict=pupil3d_datum))
+
+            datum_3d = self.eye1_pye3d.detect(pupil_frame,**{"previous_detection_results": [datum_2d], "threshold_swirski": 0.0})
+            datum_3d['id'] = '1'
+            datum_3d['topic'] = "pupil.1.3d"
+            datum_3d['method'] = self.eye1_pye3d.pupil_detection_method
+            new_pupil_data.append([Serialized_Dict(datum_3d), datum_3d['timestamp'], datum_3d['topic']])
+
+        import numpy as np
+        new_pupil_data = np.array(new_pupil_data)
+        self.g_pool.pupil_positions = PupilDataBisector(PLData(new_pupil_data[:,0],new_pupil_data[:,1],new_pupil_data[:,2]))
 
     def init_ui(self):
-        self.add_menu()
-        self.menu.label = "Calib from trim"
-        ref3D_menu = ui.Growing_Menu("3D Ref Points")
-        ref3D_menu.collapsed = True
-        ref3D_menu.append(
-            ui.Info_Text("Imports 3D reference poinst from notifications")
-
-        )
-        # ref3D_menu.append(ui.Button("Reset 3D model", self.reset_model))
 
         # super().init_ui()
-        # self.menu.label = self.pretty_class_name
-        # self.menu_icon.label_font = "pupil_icons"
+
+        self.add_menu()
+        self.menu.label = self.pretty_class_name
+        self.menu_icon.label_font = "pupil_icons"
+        # self.menu.label = "Fit Pye3D model using time range"
+        # self.menu = ui.Growing_Menu("Fit Pye3D model using time range")
+        # self.menu.collapsed = True
+
+        self.menu.append(
+            ui.Info_Text("Imports 3D reference points from notifications")
+        )
+
+        self.menu.append(ui.Button("Fit model", self._recalc_pupil_positions))
+
         # info = ui.Info_Text("Load 3D Reference Points from Unity")
         # self.menu.append(info)
 
