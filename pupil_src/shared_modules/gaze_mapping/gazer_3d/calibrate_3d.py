@@ -14,6 +14,11 @@ import numpy as np
 
 from . import utils, bundle_adjustment
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 # Fixed eyeball positions are assumed for all users
 eye0_hardcoded_translation = np.array([20, 15, -20])
 eye1_hardcoded_translation = np.array([-40, 15, -20])
@@ -192,6 +197,7 @@ def calibrate_monocular(
 
 
 def calibrate_hmd(ref_points_3d, pupil0_normals, pupil1_normals, eye_translations):
+
     """Determine the poses of the eyes and 3d gaze points by solving a specific
     least-squares minimization
 
@@ -201,6 +207,7 @@ def calibrate_hmd(ref_points_3d, pupil0_normals, pupil1_normals, eye_translation
     :param eye_translations: eyeballs position in world coordinates
     :return: optimized poses and 3d gaze targets in world camera coordinates
     """
+
     # HMD calibration strategy:
     # Take world cam as the origin and express everything in world cam coordinates.
     # Minimize reprojection-type errors by adjusting the orientation of the eyes
@@ -210,8 +217,19 @@ def calibrate_hmd(ref_points_3d, pupil0_normals, pupil1_normals, eye_translation
 
     smallest_residual = 1000
     scales = list(np.linspace(0.7, 10, 5))  # TODO: change back to 50
+    # scales = list(np.linspace(1, 1, 1))  # TODO: change back to 50
+
+    logger.info("In calibrate_hmd, about to recalibrate")
+
+    print("Recalibrating in calibrate_hmd")
+
     for s in scales:
+
+
         scaled_ref_points_3d = ref_points_3d * (1, -1, s)
+
+        # scaled_ref_points_3d = ref_points_3d * (-1, 1, s)
+        #scaled_ref_points_3d = ref_points_3d
 
         # Find initial guess for the poses in eye coordinates
         initial_rotation0 = utils.get_initial_eye_camera_rotation(
@@ -239,7 +257,7 @@ def calibrate_hmd(ref_points_3d, pupil0_normals, pupil1_normals, eye_translation
         initial_spherical_cameras = eye0, eye1
         initial_gaze_targets = scaled_ref_points_3d
 
-        ba = bundle_adjustment.BundleAdjustment(fix_gaze_targets=True)
+        ba = bundle_adjustment.BundleAdjustment(fix_gaze_targets=False)
         residual, poses_in_world, gaze_targets_in_world = ba.calculate(
             initial_spherical_cameras, initial_gaze_targets
         )

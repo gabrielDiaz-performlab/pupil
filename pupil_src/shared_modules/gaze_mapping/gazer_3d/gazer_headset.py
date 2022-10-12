@@ -225,6 +225,8 @@ class Model3D_Binocular(Model3D):
         assert sphere_pos1.shape == (3,), sphere_pos1
         assert sphere_pos0.shape == (3,), sphere_pos0
 
+        logger.info("In Model3D_Binocular, about to calibrate_binocular")
+
         res = calibrate_binocular(
             #unprojected_ref_points, pupil0_normals, pupil1_normals, self.initial_depth
             unprojected_ref_points,
@@ -357,6 +359,8 @@ class Gazer3D(GazerBase):
     eye0_hardcoded_translation = 20, 15, -20
     eye1_hardcoded_translation = -40, 15, -20
     ref_depth_hardcoded = 500
+
+
 
     @classmethod
     def _gazer_description_text(cls) -> str:
