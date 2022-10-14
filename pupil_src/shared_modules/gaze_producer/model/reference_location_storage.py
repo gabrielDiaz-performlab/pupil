@@ -72,6 +72,9 @@ class ReferenceLocationStorage(SingleFileStorage, Observable):
 
     def _add_recorded_reference(self, intrinsics: Camera_Model, reference) -> None:
         if "mm_pos" in reference:
+
+            reference["mm_pos"] = [reference["mm_pos"][0], -reference["mm_pos"][1], reference["mm_pos"][2]]
+
             reference["screen_pos"] = tuple(
                 intrinsics.projectPoints(np.array(reference["mm_pos"]))
                 .reshape(-1)
