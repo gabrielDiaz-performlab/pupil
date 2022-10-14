@@ -6,28 +6,20 @@ from pyglui import ui
 from pupil_detector_plugins.pye3d_plugin import Pye3DPlugin
 import pye3d
 
-from gaze_producer import model
-from gaze_mapping.notifications import (
-    CalibrationSetupNotification,
-    CalibrationResultNotification,
-)
+
 import file_methods as fm
 from pye3d.detector_3d import CameraModel, Detector3D, DetectorMode
 
-
-
+import data_changed
+import os
 CUSTOM_TOPIC = "custom_topic"
 
 logger = logging.getLogger(__name__)
-
-# refererence_path = "D:\\Data\\Integration\\003_400_2\\S001\\PupilData\\000 - Copy\\offline_data\\//"
-# rt_reference_path = "D:\\Data\\Integration\\003_400_2\\S001\\PupilData\\000 - Copy\\realtime_calib_points.msgpack"
 
 
 class pye3d_custom(Pye3DPlugin):
 
     def __init__(self, g_pool=None, **kwargs):
-        # TODO: Create artificial gpool object here and load in eye camera intrinsics
 
         @property
         def pupil_detector(self):
@@ -90,7 +82,8 @@ class fit_pye3d_to_trim(Plugin):
     def __init__(self, g_pool=None):
         super().__init__(g_pool=g_pool)
 
-        self.start_time, self.end_time = self._set_time_range_from_trim()
+        self.menu = None
+        self._set_time_range_from_trim()
         self.pupilDatum_conf_threshold = 0.8
 
         self.pupil_0_2d_data = []
@@ -129,14 +122,35 @@ class fit_pye3d_to_trim(Plugin):
         # Force Plugin_List to remove deactivated plugins
         plugin_list.clean()
 
+    def _get_rel_time_trim_range_string(self,ts):
+        time_fmt = ""
+        min_ts = self.g_pool.timestamps[0]
+
+        ts -= min_ts
+        minutes = ts // 60
+        seconds = ts - (minutes * 60.0)
+        micro_seconds_e1 = int((seconds - int(seconds)) * 1e3)
+        time_fmt += "{:02.0f}:{:02d}.{:03d} - ".format(
+            abs(minutes), int(seconds), micro_seconds_e1
+        )
+
+        return time_fmt[:-3]
+
     def _set_time_range_from_trim(self):
 
-        start_time = self.g_pool.timestamps[self.g_pool.seek_control.trim_left]
-        end_time = self.g_pool.timestamps[self.g_pool.seek_control.trim_right]
+        logger.info("Model fitting time range updated.")
 
-        return start_time, end_time
+        self.start_time = self.g_pool.timestamps[self.g_pool.seek_control.trim_left]
+        self.end_time = self.g_pool.timestamps[self.g_pool.seek_control.trim_right]
+
+        if self.menu:
+            self.remove_menu()
+            self.init_ui()
+
 
     def _fit_model_to_range(self):
+
+        logger.info("Fitting eye models to data from specified range.")
 
         pupil_data = self.g_pool.pupil_positions
 
@@ -157,6 +171,19 @@ class fit_pye3d_to_trim(Plugin):
 
 
     def _produce_3D_pupil_data(self):
+
+
+        ##  Example code provided by papr, after I wrote the code below.
+        # from player_methods import Bisector, PupilDataBisector
+        #
+        # original = PupilDataBisector.load_from_file(rec_dir, "pupil")
+        # for key in tuple(original._bisectors.keys()):
+        #     if "3d" in key:
+        #         del original._bisectors[key]
+        # original._bisectors["pupil.0.3d"] = Bisector(data_eye0, timestamps_eye0)
+        # original._bisectors["pupil.1.3d"] = Bisector(data_eye1, timestamps_eye1)
+
+        logger.info("Producing new 3D pupil data for entire recording from updated model.")
 
         from player_methods import PupilDataBisector
         from file_methods import PLData, Serialized_Dict
@@ -220,6 +247,34 @@ class fit_pye3d_to_trim(Plugin):
         new_pupil_data = np.array(new_pupil_data)
         self.g_pool.pupil_positions = PupilDataBisector(PLData(new_pupil_data[:,0],new_pupil_data[:,1],new_pupil_data[:,2]))
 
+        self.save_offline_data()
+
+    def save_offline_data(self):
+
+        offline_data_dir = os.path.join(self.g_pool.rec_dir, "offline_data")
+        self.g_pool.pupil_positions.save_to_file(offline_data_dir,'offline_pupil')
+
+        session_data = {}
+        session_data["detection_status"] = "complete"
+        session_data["version"] = 4
+
+
+        cache_path = os.path.join(offline_data_dir, "offline_pupil.meta")
+        fm.save_object(session_data, cache_path)
+        logger.info(f"Cached detected pupil data to {cache_path}")
+
+
+        # TODO:  Announce pupil change
+        # self._pupil_changed_announcer = data_changed.Announcer(
+        #     "pupil_positions", self.g_pool.rec_dir, plugin=self
+        # )
+        #
+        # self._pupil_changed_announcer.announce_new()
+
+        logger.info("New 3D pupil positions saved to offline_pupil data")
+
+
+
     def init_ui(self):
 
         # super().init_ui()
@@ -235,11 +290,19 @@ class fit_pye3d_to_trim(Plugin):
             ui.Info_Text("Imports 3D reference points from notifications")
         )
 
+        self.menu.append(ui.Separator())
+
+        self.menu.append(ui.Button("Update model fitting range", self._set_time_range_from_trim))
         self.menu.append(ui.Button("Fit model", self._recalc_pupil_positions))
 
-        # info = ui.Info_Text("Load 3D Reference Points from Unity")
-        # self.menu.append(info)
+        start_time_hms = self._get_rel_time_trim_range_string(self.start_time)
+        end_time_hms = self._get_rel_time_trim_range_string(self.end_time)
+        trimText = ui.Info_Text(f"Current trim range: {start_time_hms} - {end_time_hms}")
+        self.menu.append(trimText)
 
+
+
+        # self.menu.append(info)
 
 
     def deinit_ui(self):
