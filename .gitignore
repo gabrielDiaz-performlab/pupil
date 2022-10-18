@@ -22,7 +22,8 @@ recordings/
 recordings
 capture_settings/
 service_settings/
-player_settings/
+player_settings/*
+!player_settings/plugins
 settings/
 *.db
 *.npy
