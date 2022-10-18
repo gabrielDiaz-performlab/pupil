@@ -195,7 +195,7 @@ class PosthocGazerHMD3D(GazerHMD3D):
 
     eye0_hardcoded_translation = 33.35, 0, 0
     eye1_hardcoded_translation = -33.35, 0, 0
-    ref_depth_hardcoded = 20
+    ref_depth_hardcoded = 650
     y_flip_factor = 1.0
 
     def __init__(self, g_pool, *args, **kwargs):

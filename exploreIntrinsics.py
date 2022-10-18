@@ -1,6 +1,9 @@
 # https://github.com/PerForm-Lab-RIT/pupil-core-pipeline/blob/7d9ad4591151fac4f2bc50b6e18491b7c96ff6b1/src/core/pupil_detection.py#L446
 
 import logging
+import sys
+
+sys.path.append("pupil_src/shared_modules")
 
 # from pyglui import ui
 #
@@ -13,10 +16,6 @@ import os
 CUSTOM_TOPIC = "custom_topic"
 
 logger = logging.getLogger(__name__)
-
-
-
-
 
 def load_intrinsics(intrinsics_loc, resolution=None):  # (640, 480)):
     import pupil_src.shared_modules.camera_models as cm
@@ -73,15 +72,21 @@ def save_intrinsics(directory: str, cam):
     )
 
 
-rec_dir = 'D:\\Data\\Integration\\005_400_2\\S001\\PupilData\\000 - proc - Copy'
+rec_dir = 'D:\\Data\Integration\\006_400_1\\S001\\PupilData\\000 - old'
 
 cam = load_intrinsics(rec_dir + "\\world.intrinsics")
+
+
 # cam.K[0,0] = 207.8461
 # cam.K[1,1] = 207.8461
 
-cam.K[1,1] = 425.0
+#cam.K[1,1] = 375.5
+#cam.K[1,1] =415.69219971
 
 save_intrinsics(rec_dir,cam)
+
+print(cam.K)
+
 logger.debug(
     f"**************** Adjusted world camera intrinsics ***************"
 )

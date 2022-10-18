@@ -179,8 +179,10 @@ def calibrate_hmd(
 
     initial_translation0, initial_translation1 = np.asarray(eye_translations)
 
-    smallest_residual = 1000
-    # scales = list(np.linspace(0.7, 10, 5))  # TODO: change back to 50
+    smallest_residual = 500
+    #scales = list(np.linspace(0.4, .65, 5))  # TODO: change back to 50
+    scales = [1.0] #list(np.linspace(1, 1, 1))  # TODO: change back to 50
+
     for s in scales:
         scaled_ref_points_3d = ref_points_3d * (1, y_flip_factor, s)
 
