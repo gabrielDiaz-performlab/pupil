@@ -1,7 +1,7 @@
 """
 (*)~---------------------------------------------------------------------------
 Pupil - eye tracking platform
-Copyright (C) 2012-2022 Pupil Labs
+Copyright (C) Pupil Labs
 
 Distributed under the terms of the GNU
 Lesser General Public License (LGPL v3.0).
@@ -149,7 +149,7 @@ class GazerBase(abc.ABC, Plugin):
         return True
 
     @staticmethod
-    def registered_gazer_classes() -> T.List["GazerBase"]:
+    def registered_gazer_classes() -> T.List[T.Type["GazerBase"]]:
         return list(GazerBase.__registered_gazer_plugins.values())
 
     __registered_gazer_plugins = collections.OrderedDict()

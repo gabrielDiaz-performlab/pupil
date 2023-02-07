@@ -1,14 +1,13 @@
 """
 (*)~---------------------------------------------------------------------------
 Pupil - eye tracking platform
-Copyright (C) 2012-2022 Pupil Labs
+Copyright (C) Pupil Labs
 
 Distributed under the terms of the GNU
 Lesser General Public License (LGPL v3.0).
 See COPYING and COPYING.LESSER for license details.
 ---------------------------------------------------------------------------~(*)
 """
-
 import os
 import platform
 import signal
@@ -49,7 +48,7 @@ class Is_Alive_Manager:
             {"subject": "eye_process.stopped", "eye_id": self.eye_id}
         )
         time.sleep(1.0)
-        return True  # do not propergate exception
+        return True  # do not propagate exception
 
 
 def eye(
@@ -812,14 +811,15 @@ def eye(
 
         session_settings.close()
 
-        for plugin in g_pool.plugins:
-            plugin.alive = False
-        g_pool.plugins.clean()
+    logger.debug("Process shutting down.")
+    for plugin in g_pool.plugins:
+        plugin.alive = False
+    g_pool.plugins.clean()
 
     glfw.destroy_window(main_window)
     g_pool.gui.terminate()
     glfw.terminate()
-    logger.debug("Process shutting down.")
+    logger.debug("Process shut down.")
 
 
 def eye_profiled(

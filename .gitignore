@@ -51,6 +51,8 @@ mprofile_*.dat
 *.dmg
 *.zip
 deployment/pupil_v*
+deployment/build/
+deployment/dist/
 *.pyd
 *.dll
 win_drv
@@ -59,3 +61,4 @@ win_drv
 
 # pyenv local config
 .python-version
+*.exe

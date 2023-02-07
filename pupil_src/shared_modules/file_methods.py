@@ -1,14 +1,13 @@
 """
 (*)~---------------------------------------------------------------------------
 Pupil - eye tracking platform
-Copyright (C) 2012-2022 Pupil Labs
+Copyright (C) Pupil Labs
 
 Distributed under the terms of the GNU
 Lesser General Public License (LGPL v3.0).
 See COPYING and COPYING.LESSER for license details.
 ---------------------------------------------------------------------------~(*)
 """
-
 import collections
 import collections.abc
 import copy
@@ -145,22 +144,36 @@ class Incremental_Legacy_Pupil_Data_Loader:
             yield self.unpacker.unpack()
 
 
-def load_pldata_file(directory, topic):
+def load_pldata_file(directory, topic, track_progress_in_console: bool = True):
     ts_file = os.path.join(directory, topic + "_timestamps.npy")
     msgpack_file = os.path.join(directory, topic + ".pldata")
     try:
         data = collections.deque()
         topics = collections.deque()
-        data_ts = np.load(ts_file)
+        extract_ts = False
+        try:
+            data_ts = np.load(ts_file)
+        except FileNotFoundError:
+            data_ts = []
+            extract_ts = True
+            logger.warning(
+                f"Timestamp file not found at expected location `{ts_file}`."
+                " Attempting to fallback to msgpack-serialized timestamps."
+            )
         with open(msgpack_file, "rb") as fh:
-            for topic, payload in track(
-                msgpack.Unpacker(fh, use_list=False, strict_map_key=False),
-                description=f"Loading {topic} data",
-                total=len(data_ts),
-            ):
-                data.append(Serialized_Dict(msgpack_bytes=payload))
+            unpacker = msgpack.Unpacker(fh, use_list=False, strict_map_key=False)
+            if track_progress_in_console:
+                unpacker = track(
+                    unpacker, description=f"Loading {topic} data", total=len(data_ts)
+                )
+            for topic, payload in unpacker:
+                datum = Serialized_Dict(msgpack_bytes=payload)
+                data.append(datum)
                 topics.append(topic)
-    except FileNotFoundError:
+                if extract_ts:
+                    data_ts.append(datum["timestamp"])
+    except FileNotFoundError as err:
+        logger.debug(err)
         data = []
         data_ts = []
         topics = []

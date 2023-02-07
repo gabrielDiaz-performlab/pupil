@@ -46,6 +46,8 @@ All setup and dependency installation instructions are contained in this repo. A
 
 ### Installing Dependencies and Code
 
+To run the source code, you will need Python 3.7 or newer!
+
 Note: It is recommended to install the requirements into a
 [virtual environment](https://docs.python.org/3/tutorial/venv.html).
 
@@ -56,11 +58,37 @@ dependencies.
 ```sh
 git clone https://github.com/pupil-labs/pupil.git
 cd pupil
+git checkout develop
 python -m pip install -r requirements.txt
 ```
 
 If you have trouble installing any of the dependencies, please see the corresponding
 code repository for manual installation steps and troubleshooting.
+
+#### Linux
+
+##### USB Access
+
+To grant Pupil Core applications access to the cameras, run
+
+```sh
+echo 'SUBSYSTEM=="usb",  ENV{DEVTYPE}=="usb_device", GROUP="plugdev", MODE="0664"' | sudo tee /etc/udev/rules.d/10-libuvc.rules > /dev/null
+sudo udevadm trigger
+```
+
+and ensure that your user is part of the `plugdev` group:
+
+```sh
+sudo usermod -a -G plugdev $USER
+```
+
+##### Audio Playback
+
+The [`sounddevice`](https://python-sounddevice.readthedocs.io/en/0.4.5/installation.html#installation) package depends on the `libportaudio2` library:
+
+```sh
+sudo apt install libportaudio2
+```
 
 ### Run Pupil
 

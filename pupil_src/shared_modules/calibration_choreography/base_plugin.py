@@ -1,7 +1,7 @@
 """
 (*)~---------------------------------------------------------------------------
 Pupil - eye tracking platform
-Copyright (C) 2012-2022 Pupil Labs
+Copyright (C) Pupil Labs
 
 Distributed under the terms of the GNU
 Lesser General Public License (LGPL v3.0).
@@ -19,7 +19,6 @@ from gaze_mapping import GazerHMD3D, default_gazer_class, registered_gazer_class
 from gaze_mapping.gazer_base import GazerBase
 from hotkey import Hotkey
 from plugin import Plugin
-from pyglui import ui
 
 logger = logging.getLogger(__name__)
 
@@ -356,6 +355,7 @@ class CalibrationChoreographyPlugin(Plugin):
         ui_text.text = self.selected_gazer_class._gazer_description_text()
 
     def init_ui(self):
+        from pyglui import ui
 
         desc_text = ui.Info_Text(self._choreography_description_text())
 
