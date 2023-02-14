@@ -90,9 +90,9 @@ def player(
             GazeFromOfflineCalibration,
         )
         from gaze_producer.gaze_from_recording import GazeFromRecording
-        from head_pose_tracker.offline_head_pose_tracker import (
-            Offline_Head_Pose_Tracker,
-        )
+        # from head_pose_tracker.offline_head_pose_tracker import (
+        #     Offline_Head_Pose_Tracker,
+        # )
         from hotkey import Hotkey
         from imu_timeline import IMUTimeline
         from log_display import Log_Display
@@ -189,7 +189,7 @@ def player(
             World_Video_Exporter,
             iMotions_Exporter,
             Eye_Video_Exporter,
-            Offline_Head_Pose_Tracker,
+            # Offline_Head_Pose_Tracker,
             IMUTimeline,
         ] + runtime_plugins
 
