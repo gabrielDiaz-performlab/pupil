@@ -133,7 +133,7 @@ class Detector2DPlugin(PupilDetectorPlugin):
                 "pupil_size_max",
                 self.pupil_detector_properties,
                 label="Pupil max",
-                min=50,
+                min=10,
                 max=400,
                 step=1,
             )

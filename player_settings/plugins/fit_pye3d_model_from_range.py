@@ -55,16 +55,16 @@ class fit_pye3d_to_trim(Plugin):
         self.pupilDatum_conf_threshold = 0.8
 
         self.model_fit_conf_threshold = {}
-        self.model_fit_conf_threshold['value'] = 0.9
+        self.model_fit_conf_threshold['value'] = 0.8
         self.model_fit_conf_threshold['min'] = 0.6
         self.model_fit_conf_threshold['max'] = 1.0
-        self.model_fit_conf_threshold['step'] =  0.05
+        self.model_fit_conf_threshold['step'] = 0.05
 
         self.aspectThreshold = {}
         self.aspectThreshold['value'] = 0.9
-        self.aspectThreshold['min'] = 0.85
+        self.aspectThreshold['min'] = 0.75
         self.aspectThreshold['max'] = 1.0
-        self.aspectThreshold['step'] =  0.01
+        self.aspectThreshold['step'] = 0.01
 
         # initialize empty menu
         self.menu = None
