@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 
 
 class Detector2DPlugin(PupilDetectorPlugin):
-
     pupil_detection_identifier = "2d"
     pupil_detection_method = "2d c++"
 
@@ -135,6 +134,22 @@ class Detector2DPlugin(PupilDetectorPlugin):
                 label="Pupil max",
                 min=10,
                 max=400,
+                step=1,
+            )
+        )
+        info = ui.Info_Text(
+            "When using Neon in bright light, increasing the Canny Threshold can "
+            "help reduce the effect of reflections in the eye image and improve pupil "
+            "detection. The default value is 160."
+        )
+        self.menu.append(info)
+        self.menu.append(
+            ui.Slider(
+                "canny_treshold",
+                self.pupil_detector_properties,
+                label="Canny Threshold",
+                min=0,
+                max=1000,
                 step=1,
             )
         )
